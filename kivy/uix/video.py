@@ -55,6 +55,12 @@ from kivy.properties import (BooleanProperty, NumericProperty, ObjectProperty,
 
 class Video(Image):
     '''Video class. See module documentation for more information.
+
+    :Events:
+        `on_frame`
+            Fired when a new frame is written to the texture.
+        
+        .. versionadded:: 2.2.0
     '''
 
     preview = StringProperty(None, allownone=True)
@@ -81,29 +87,6 @@ class Video(Image):
 
     :attr:`state` is an :class:`~kivy.properties.OptionProperty` and defaults
     to 'stop'.
-    '''
-
-    play = BooleanProperty(False, deprecated=True)
-    '''
-    .. deprecated:: 1.4.0
-        Use :attr:`state` instead.
-
-    Boolean, indicates whether the video is playing or not.
-    You can start/stop the video by setting this property::
-
-        # start playing the video at creation
-        video = Video(source='movie.mkv', play=True)
-
-        # create the video, and start later
-        video = Video(source='movie.mkv')
-        # and later
-        video.play = True
-
-    :attr:`play` is a :class:`~kivy.properties.BooleanProperty` and defaults to
-    False.
-
-    .. deprecated:: 1.4.0
-        Use :attr:`state` instead.
     '''
 
     eos = BooleanProperty(False)
@@ -159,15 +142,23 @@ class Video(Image):
 
     _video_load_event = None
 
+    __events__ = ('on_frame',)
+
     def __init__(self, **kwargs):
         self._video = None
         super(Video, self).__init__(**kwargs)
-        self.fbind('source', self._trigger_video_load)
+        fbind = self.fbind
+        fbind('source', self._trigger_video_load)
+        fbind('volume', self._update_volume)
+        fbind('state', self._update_state)
 
         if "eos" in kwargs:
             self.options["eos"] = kwargs["eos"]
         if self.source:
             self._trigger_video_load()
+
+    def on_frame(self):
+        pass
 
     def texture_update(self, *largs):
         if self.preview:
@@ -220,19 +211,18 @@ class Video(Image):
                 filename = resource_find(filename)
             self._video = CoreVideo(filename=filename, **self.options)
             self._video.volume = self.volume
-            self._video.bind(on_load=self._on_load,
-                             on_frame=self._on_video_frame,
-                             on_eos=self._on_eos)
-            if self.state == 'play' or self.play:
+            self._video.bind(
+                on_load=self._on_load,
+                on_unload=self._on_unload,
+                on_frame=self._on_video_frame,
+                on_eos=self._on_eos
+            )
+            if self.state == 'play':
                 self._video.play()
             self.duration = 1.
             self.position = 0.
 
-    def on_play(self, instance, value):
-        value = 'play' if value else 'stop'
-        return self.on_state(instance, value)
-
-    def on_state(self, instance, value):
+    def _update_state(self, instance, value):
         if not self._video:
             return
         if value == 'play':
@@ -247,6 +237,10 @@ class Video(Image):
             self._video.stop()
             self._video.position = 0
 
+    def _update_volume(self, instance, value):
+        if self._video:
+            self._video.volume = value
+
     def _on_video_frame(self, *largs):
         video = self._video
         if not video:
@@ -255,6 +249,7 @@ class Video(Image):
         self.position = video.position
         self.texture = video.texture
         self.canvas.ask_update()
+        self.dispatch('on_frame')
 
     def _on_eos(self, *largs):
         if not self._video or self._video.eos != 'loop':
@@ -265,9 +260,9 @@ class Video(Image):
         self.loaded = True
         self._on_video_frame(largs)
 
-    def on_volume(self, instance, value):
-        if self._video:
-            self._video.volume = value
+    def _on_unload(self, *largs):
+        self.loaded = False
+        self.texture = None
 
     def unload(self):
         '''Unload the video. The playback will be stopped.
@@ -278,7 +273,6 @@ class Video(Image):
             self._video.stop()
             self._video.unload()
             self._video = None
-        self.loaded = False
 
 
 if __name__ == '__main__':

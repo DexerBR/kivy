@@ -77,6 +77,7 @@ class VideoGstplayer(VideoBase):
         if self.player:
             self.player.unload()
             self.player = None
+            self.dispatch('on_unload')
         with self._buffer_lock:
             self._buffer = None
         self._texture = None

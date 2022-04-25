@@ -436,6 +436,7 @@ class VideoFFPy(VideoBase):
 
         if self._ffplayer:
             self._ffplayer = None
+            self.dispatch('on_unload')
         self._next_frame = None
         self._size = (0, 0)
         self._state = ''

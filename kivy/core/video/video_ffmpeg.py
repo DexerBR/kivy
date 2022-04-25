@@ -35,6 +35,7 @@ class VideoFFMpeg(VideoBase):
         if self._player:
             self._player.stop()
             self._player = None
+            self.dispatch('on_unload')
         self._state = ''
         self._do_load = False
 

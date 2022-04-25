@@ -51,6 +51,8 @@ class VideoBase(EventDispatcher):
             Fired when EOS is hit.
         `on_load`
             Fired when the video is loaded and the texture is available.
+        `on_unload`
+            Fired when the video is unloaded.
         `on_frame`
             Fired when a new frame is written to the texture.
     '''
@@ -58,7 +60,7 @@ class VideoBase(EventDispatcher):
     __slots__ = ('_wantplay', '_buffer', '_filename', '_texture',
                  '_volume', 'eos', '_state', '_async', '_autoplay')
 
-    __events__ = ('on_eos', 'on_load', 'on_frame')
+    __events__ = ('on_eos', 'on_load', 'on_unload', 'on_frame')
 
     def __init__(self, **kwargs):
         kwargs.setdefault('filename', None)
@@ -95,6 +97,9 @@ class VideoBase(EventDispatcher):
         pass
 
     def on_load(self):
+        pass
+
+    def on_unload(self):
         pass
 
     def on_frame(self):
