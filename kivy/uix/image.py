@@ -202,6 +202,16 @@ class Image(Widget):
     to False.
     '''
 
+    def get_anim_progress(self):
+        return self._anim_progress
+
+    anim_progress = AliasProperty(get_anim_progress, bind=('texture',))
+    '''The current progress of the animation
+
+    :attr:`anim_progress` is an :class:`~kivy.properties.AliasProperty` and is
+    read-only.
+    '''
+
     def get_norm_image_size(self):
         if not self.texture:
             return list(self.size)
@@ -244,6 +254,7 @@ class Image(Widget):
     def __init__(self, **kwargs):
         self._coreimage = None
         self._loops = 0
+        self._anim_progress = 0
         update = self.texture_update
         fbind = self.fbind
         fbind('source', update)
@@ -264,6 +275,7 @@ class Image(Widget):
             return
         if self._coreimage:
             self._coreimage.unbind(on_texture=self._on_tex_change)
+            self._coreimage.unbind(on_anim_progress=self._on_anim_progress)
         try:
             self._coreimage = image = CoreImage(
                 source,
@@ -278,6 +290,7 @@ class Image(Widget):
             image = self._coreimage
         if image:
             image.bind(on_texture=self._on_tex_change)
+            image.bind(on_anim_progress=self._on_anim_progress)
             self.texture = image.texture
 
     def on_anim_delay(self, instance, value):
@@ -293,6 +306,7 @@ class Image(Widget):
     def _clear_core_image(self):
         if self._coreimage:
             self._coreimage.unbind(on_texture=self._on_tex_change)
+            self._coreimage.unbind(on_anim_progress=self._on_anim_progress)
         self.texture = None
         self._coreimage = None
         self._loops = 0
@@ -306,6 +320,14 @@ class Image(Widget):
             if self.anim_loop == self._loops:
                 ci.anim_reset(False)
                 self._loops = 0
+
+    def _on_anim_progress(self, widget, value):
+        self._anim_progress = value
+        # if self._coreimage is None:
+        #     return
+        # self._coreimage.anim_delay = value
+        # if value < 0:
+        #     self._coreimage.anim_reset(False)
 
     def reload(self):
         '''Reload image from disk. This facilitates re-loading of
@@ -391,7 +413,8 @@ class AsyncImage(Image):
         image.bind(
             on_load=self._on_source_load,
             on_error=self._on_source_error,
-            on_texture=self._on_tex_change
+            on_texture=self._on_tex_change,
+            on_anim_progress=self._on_anim_progress
         )
         self.texture = image.texture
 
@@ -424,6 +447,9 @@ class AsyncImage(Image):
     def _on_tex_change(self, *largs):
         if self._coreimage:
             self.texture = self._coreimage.texture
+
+    # def _on_anim_progress(self, widget, value):
+    #     self._anim_progress = value
 
     def texture_update(self, *largs):
         pass

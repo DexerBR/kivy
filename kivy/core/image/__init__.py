@@ -508,6 +508,7 @@ class Image(EventDispatcher):
     def __init__(self, arg, **kwargs):
         # this event should be fired on animation of sequenced img's
         self.register_event_type('on_texture')
+        self.register_event_type('on_anim_progress')
 
         super(Image, self).__init__()
 
@@ -587,16 +588,34 @@ class Image(EventDispatcher):
             count += 1
             uid = pat % (f, self._mipmap, count)
 
-    def _anim(self, *largs):
-        if not self._image:
-            return
+    def _anim(self, anim_index=None, anim_progress=None, *largs):
         textures = self.image.textures
         if self._anim_index >= len(textures):
             self._anim_index = 0
         self._texture = self.image.textures[self._anim_index]
         self.dispatch('on_texture')
+        if len(textures) > 1:
+            self.dispatch('on_anim_progress', self._anim_index / (len(textures) - 1))
         self._anim_index += 1
         self._anim_index %= len(self._image.textures)
+        # if not self._image:
+        #     return
+        # textures_count = len(self.image.textures)
+
+        # if anim_index:
+        #     self._anim_index = min(max(anim_index, 0), textures_count - 1)
+        #     self._texture = self.image.textures[self._anim_index]
+        #     self.dispatch('on_texture')
+        
+        # elif anim_progress:
+
+        # else:
+        #     if self._anim_index >= textures_count:
+        #         self._anim_index = 0
+        #     self._texture = self.image.textures[self._anim_index]
+        #     self.dispatch('on_texture')
+        #     self._anim_index += 1
+        #     self._anim_index %= len(self._image.textures)
 
     def anim_reset(self, allow_anim):
         '''Reset an animation if available.
@@ -670,6 +689,28 @@ class Image(EventDispatcher):
         '''
         return self._anim_index
 
+    # @property
+    # def anim_progress(self):
+    #     '''Return the current progress of the animation if this Image instance
+    #     has animation available. Otherwise it will return 0.
+
+    #     .. versionadded:: 2.2.0
+    #     '''
+    #     if not self.anim_available:
+    #         return 0
+    #     return self.anim_index / (len(self.image.textures) - 1)
+    
+    # @property
+    # def anim_progress(self):
+    #     '''Return the current progress of the animation if this Image instance
+    #     has animation available. Otherwise it will return 0.
+
+    #     .. versionadded:: 2.2.0
+    #     '''
+    #     if not self.anim_available:
+    #         return 0
+    #     return self.anim_index / len(self.image.textures)
+
     def _img_iterate(self, *largs):
         if not self.image or self._iteration_done:
             return
@@ -685,6 +726,15 @@ class Image(EventDispatcher):
            changed. It is normally used for sequenced images.
 
         .. versionadded:: 1.0.8
+        '''
+        pass
+
+    def on_anim_progress(self, *largs):
+        '''This event is fired when the progression of the animation is
+           changing.
+           changed. It is normally used for sequenced images.
+
+        .. versionadded:: 2.2.0
         '''
         pass
 
@@ -812,6 +862,20 @@ class Image(EventDispatcher):
             if not self._iteration_done:
                 self._img_iterate()
         return self._texture
+
+    # @property
+    # def textures(self):
+    #     '''Get the textures list (for mipmapped image or animated image).
+
+    #     .. versionadded:: 2.2.0
+    #     '''
+    #     if self.image:
+    #         if not self._iteration_done:
+    #             self._img_iterate()
+    #     return self.image._textures
+    #     # if self.image._textures is None:
+    #     #     self.image.populate()
+    #     # return self.image._textures
 
     @property
     def nocache(self):
