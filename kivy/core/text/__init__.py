@@ -793,7 +793,7 @@ class LabelBase(object):
                 w, h, clipped = layout_text(text[:center + 1], lines, (w, h),
                 (uw, uh), options, self.get_cached_extents(), False, True)
             else:  # if there's no new line, layout everything
-                w, h, clipped = layout_text(text, lines, (0, 0), (uw, None),
+                w, h, clipped = layout_text(text, lines, (0, 0), (uw, uh),
                 options, self.get_cached_extents(), True, True)
         else:  # top or bottom
             w, h, clipped = layout_text(text, lines, (0, 0), (uw, uh), options,
