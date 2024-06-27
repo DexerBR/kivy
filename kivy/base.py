@@ -22,6 +22,7 @@ __all__ = (
 
 import sys
 import os
+from time import time
 from kivy.config import Config
 from kivy.logger import Logger
 from kivy.utils import platform
@@ -123,6 +124,7 @@ class EventLoopBase(EventDispatcher):
         self.event_listeners = []
         self.window = None
         self.me_list = []
+        self._last_idle_update = 0
 
     @property
     def touches(self):
@@ -374,6 +376,10 @@ class EventLoopBase(EventDispatcher):
            * it dispatches `on_update`, `on_draw` and `on_flip` events to the
              window.
         '''
+        now = time()
+        if now - self._last_idle_update < 1 / 120:
+            return
+        self._last_idle_update = now
 
         # update dt
         Clock.tick()
