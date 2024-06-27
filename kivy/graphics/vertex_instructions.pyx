@@ -797,8 +797,14 @@ cdef class Rectangle(VertexInstruction):
         `size`: list
             Size of the rectangle, in the format (width, height).
     '''
-    cdef float x,y,w,h
-    cdef list _points
+
+    cdef float x, y, w, h
+    cdef vertex_t *_vertices
+    cdef unsigned short *_indices
+    cdef bint needs_mem_alloc
+
+    def __cinit__(self):
+        self.needs_mem_alloc = True
 
     def __init__(self, **kwargs):
         VertexInstruction.__init__(self, **kwargs)
@@ -807,18 +813,40 @@ cdef class Rectangle(VertexInstruction):
         v = kwargs.get('size')
         self.size = v if v is not None else (100, 100)
 
-    cdef void build(self):
+    def __dealloc__(self):
+        self._dealloc_vertices_indices()
+
+    cdef void _alloc_vertices_indices(self):
+        vertices = <vertex_t *>malloc(4 * sizeof(vertex_t))
+        if vertices == NULL:
+            raise MemoryError('vertices')
+
+        indices = <unsigned short *>malloc(6 * sizeof(unsigned short))
+        if indices == NULL:
+            free(vertices)
+            raise MemoryError('indices')
+
+        self._vertices = vertices
+        self._indices = indices
+
+        self.needs_mem_alloc = False
+
+    cdef void _dealloc_vertices_indices(self):
+        if self._vertices != NULL:
+            free(self._vertices)
+            self._vertices = NULL
+        if self._indices != NULL:
+            free(self._indices)
+            self._indices = NULL
+
+    cdef void _set_vertices_indices(self):
         cdef float x, y, w, h
         cdef float *tc = self._tex_coords
-        cdef vertex_t vertices[4]
-        cdef unsigned short *indices = [0, 1, 2, 2, 3, 0]
-
-        # reset points
-        self._points = []
+        cdef vertex_t *vertices = self._vertices
+        cdef unsigned short *indices = self._indices
 
         x, y = self.x, self.y
         w, h = self.w, self.h
-
 
         vertices[0].x = x
         vertices[0].y = y
@@ -837,9 +865,20 @@ cdef class Rectangle(VertexInstruction):
         vertices[3].s0 = tc[6]
         vertices[3].t0 = tc[7]
 
-        self._points = [x, y, x + w, y, x + w, y + h, x, y + h]
+        indices[0] = 0
+        indices[1] = 1
+        indices[2] = 2
+        indices[3] = 2
+        indices[4] = 3
+        indices[5] = 0
 
-        self.batch.set_data(vertices, 4, indices, 6)
+    cdef void build(self):
+        if self.needs_mem_alloc:
+            print("Memoria alocada!")
+            self._alloc_vertices_indices()
+
+        self._set_vertices_indices()
+        self.batch.set_data(self._vertices, 4, self._indices, 6)
 
     @property
     def pos(self):
@@ -1129,7 +1168,7 @@ cdef class BorderImage(Rectangle):
         self._display_border = list(b)
         self.flag_data_update()
 
-cdef class Ellipse(Rectangle):
+cdef class Ellipse(VertexInstruction):
     '''A 2D ellipse.
 
     :Parameters:
@@ -1153,35 +1192,63 @@ cdef class Ellipse(Rectangle):
     cdef int _segments
     cdef float _angle_start
     cdef float _angle_end
+    cdef float x, y, w, h
+    cdef vertex_t *_vertices
+    cdef unsigned short *_indices
+    cdef bint needs_mem_alloc
 
-    def __init__(self, *args, **kwargs):
-        Rectangle.__init__(self, **kwargs)
-        self.batch.set_mode('triangle_fan')
+    def __cinit__(self):
+        self.needs_mem_alloc = True
+
+    def __init__(self, **kwargs):
+        VertexInstruction.__init__(self, **kwargs)
         self._segments = kwargs.get('segments') or 0
         self._angle_start = kwargs.get('angle_start') or 0.0
         self._angle_end = kwargs.get('angle_end') or 360.0
+        v = kwargs.get('pos')
+        self.pos = v if v is not None else (0, 0)
+        v = kwargs.get('size')
+        self.size = v if v is not None else (100, 100)
 
-    cdef void build(self):
+    def __dealloc__(self):
+        self._dealloc_vertices_indices()
+
+    cdef void _alloc_vertices_indices(self, int segments, int vertices_count):
+        print("Alloc")
+        vertices = <vertex_t *>malloc(vertices_count * sizeof(vertex_t))
+        if vertices == NULL:
+            raise MemoryError('vertices')
+
+        indices = <unsigned short *>malloc((segments * 3) * sizeof(unsigned short))
+        if indices == NULL:
+            free(vertices)
+            raise MemoryError('indices')
+
+        self._vertices = vertices
+        self._indices = indices
+
+        self.needs_mem_alloc = False
+
+    cdef void _dealloc_vertices_indices(self):
+        if self._vertices != NULL:
+            free(self._vertices)
+            self._vertices = NULL
+        if self._indices != NULL:
+            free(self._indices)
+            self._indices = NULL
+
+    cdef void _set_vertices_indices(self, int segments, int vertices_count):
         cdef float *tc = self._tex_coords
         cdef int i, angle_dir
         cdef double angle_start, angle_end, angle_range
         cdef double x, y, angle, rx, ry, ttx, tty, tx, ty, tw, th
         cdef double cx, cy, tangential_factor, radial_factor, fx, fy
-        cdef vertex_t *vertices = NULL
-        cdef unsigned short *indices = NULL
-        cdef int segments = self._segments
-
-        # reset points
-        self._points = []
+        cdef vertex_t *vertices = self._vertices
+        cdef unsigned short *indices = self._indices
+        cdef bint use_first_vertex_as_last = False
 
         if self.w == 0 or self.h == 0:
             return
-
-
-        if segments == 0 or segments < 3:
-            if segments != 0:
-                Logger.warning('Ellipse: A minimum of 3 segments is required. The default value will be used instead.')
-            segments = max(1, int(abs(self._angle_end - self._angle_start) / 2))
 
         tx = tc[0]
         ty = tc[1]
@@ -1191,14 +1258,8 @@ cdef class Ellipse(Rectangle):
         rx = 0.5 * self.w
         ry = 0.5 * self.h
 
-        vertices = <vertex_t *>malloc((segments + 2) * sizeof(vertex_t))
-        if vertices == NULL:
-            raise MemoryError('vertices')
-
-        indices = <unsigned short *>malloc((segments + 2) * sizeof(unsigned short))
-        if indices == NULL:
-            free(vertices)
-            raise MemoryError('indices')
+        if abs(self._angle_start - self._angle_end) == 360 or self._angle_start == self._angle_end:
+            use_first_vertex_as_last = True
 
         # calculate the start/end angle in radians, and adapt the range
         if self._angle_end > self._angle_start:
@@ -1216,11 +1277,11 @@ cdef class Ellipse(Rectangle):
         y = self.y + ry
         ttx = ((x - self.x) / self.w) * tw + tx
         tty = ((y - self.y) / self.h) * th + ty
-        vertices[0].x = <float>(self.x + rx)
-        vertices[0].y = <float>(self.y + ry)
-        vertices[0].s0 = <float>ttx
-        vertices[0].t0 = <float>tty
-        indices[0] = 0
+
+        vertices[vertices_count - 1].x = <float>x
+        vertices[vertices_count - 1].y = <float>y
+        vertices[vertices_count - 1].s0 = <float>ttx
+        vertices[vertices_count - 1].t0 = <float>tty
 
         # super fast ellipse drawing
         # credit goes to: http://slabode.exofire.net/circle_draw.shtml
@@ -1235,7 +1296,7 @@ cdef class Ellipse(Rectangle):
         x = r * sin(angle_start)
         y = r * cos(angle_start)
 
-        for i in range(1, segments + 2):
+        for i in range(0, vertices_count - 1):
             ttx = (cx + x) * tw + tx
             tty = (cy + y) * th + ty
             real_x = self.x + (cx + x) * self.w
@@ -1244,7 +1305,6 @@ cdef class Ellipse(Rectangle):
             vertices[i].y = <float>real_y
             vertices[i].s0 = <float>ttx
             vertices[i].t0 = <float>tty
-            indices[i] = i
 
             fx = -y
             fy = x
@@ -1253,12 +1313,64 @@ cdef class Ellipse(Rectangle):
             x *= radial_factor
             y *= radial_factor
 
-            self._points.extend([real_x, real_y])
+            # self._points.extend([real_x, real_y])
 
-        self.batch.set_data(vertices, segments + 2, indices, segments + 2)
+        for i in range(0, segments * 3, 3):
+            indices[i] = vertices_count - 1
+            indices[i + 1] = i // 3
+            indices[i + 2] = i // 3 + 1
 
-        free(vertices)
-        free(indices)
+        if use_first_vertex_as_last:
+            indices[(segments * 3) - 1] = 0
+            # self._points.extend([vertices[0].x, vertices[0].y])
+
+    cdef void build(self):
+        cdef int segments = self._segments
+        cdef int vertices_count
+        if segments == 0 or segments < 3:
+            segments = max(1, int(abs(self._angle_end - self._angle_start) / 2))
+
+        if abs(self._angle_start - self._angle_end) == 360 or self._angle_start == self._angle_end:
+            vertices_count = segments + 1
+        else:
+            vertices_count = segments + 2
+
+        if self.needs_mem_alloc:
+            print("Memoria alocada!")
+            self._alloc_vertices_indices(segments, vertices_count)
+
+        self._set_vertices_indices(segments, vertices_count)
+        self.batch.set_data(self._vertices, vertices_count, self._indices, segments * 3)
+
+    @property
+    def pos(self):
+        '''Property for getting/setting the position of the ellipse.'''
+        return (self.x, self.y)
+
+    @pos.setter
+    def pos(self, pos):
+        cdef float x, y
+        x, y = pos
+        if self.x == x and self.y == y:
+            return
+        self.x = x
+        self.y = y
+        self.flag_data_update()
+
+    @property
+    def size(self):
+        '''Property for getting/setting the size of the ellipse.'''
+        return (self.w, self.h)
+
+    @size.setter
+    def size(self, size):
+        cdef float w, h
+        w, h = size
+        if self.w == w and self.h == h:
+            return
+        self.w = w
+        self.h = h
+        self.flag_data_update()
 
     @property
     def segments(self):
@@ -1282,8 +1394,7 @@ cdef class Ellipse(Rectangle):
 
     @property
     def angle_start(self):
-        '''Start angle of the ellipse in degrees, defaults to 0.
-        '''
+        '''Start angle of the ellipse in degrees, defaults to 0.'''
         return self._angle_start
 
     @angle_start.setter
@@ -1293,14 +1404,14 @@ cdef class Ellipse(Rectangle):
 
     @property
     def angle_end(self):
-        '''End angle of the ellipse in degrees, defaults to 360.
-        '''
+        '''End angle of the ellipse in degrees, defaults to 360.'''
         return self._angle_end
 
     @angle_end.setter
     def angle_end(self, value):
         self._angle_end = value
         self.flag_data_update()
+
 
 
 cdef class RoundedRectangle(Rectangle):
