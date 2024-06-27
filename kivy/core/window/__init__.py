@@ -15,7 +15,7 @@ from os import getcwd
 from collections import defaultdict
 
 from kivy.core import core_select_lib
-from kivy.clock import Clock
+from kivy.clock import Clock, triggered
 from kivy.config import Config
 from kivy.logger import Logger
 from kivy.base import EventLoop, stopTouchApp
@@ -1671,9 +1671,35 @@ class WindowBase(EventDispatcher):
     def get_parent_layout(self):
         return None
 
+    # def on_draw(self):
+    #     if not hasattr(self, "_draw_ev"):
+    #         self._draw_ev = Clock.create_trigger(self.redraw_scene, 0)
+    #     self._check_draw()
+
+    # def _check_draw(self):
+    #     # if Clock.get_fps() < 30:
+    #     self._draw_ev.cancel()
+    #     self._draw_ev()
+    
+
+    # def redraw_scene(self, *args):
+    #     self._draw_ev.cancel()
+    #     self.clear()
+    #     self.render_context.draw()
+    #     self._draw_ev.cancel()
+
+
     def on_draw(self):
+        if not hasattr(self, "_draw_ev"):
+            self._draw_ev = Clock.create_trigger(self.redraw_scene, 1/120)
+        self._draw_ev()
+
+    def redraw_scene(self, *args):
+        self._draw_ev.timeout = 1 / max(30, Clock.get_fps())
         self.clear()
         self.render_context.draw()
+
+
 
     def on_motion(self, etype, me):
         '''Event called when a motion event is received.
