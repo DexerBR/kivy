@@ -919,6 +919,55 @@ graphics_dependencies = {
         'cgl.pxd', 'texture.pxd', 'vertex_instructions_line.pxi'],
     'vertex_instructions_line.pxi': ['stencil_instructions.pxd']}
 
+
+SKIA_LIBRARIES = [
+    "skia",
+    "svg",
+    "skshaper",
+    "skunicode_core",
+    "skunicode_icu",
+    # "opengl32",
+
+    "skottie",
+    "skresources",
+    "sksg",
+]
+if sys.platform == "win32":
+    SKIA_LIBRARIES.extend(
+        [
+            "FontSub",
+            "Advapi32",
+            "OpenGL32",
+        ]
+    )
+    EXTRA_COMPILE_ARGS = [
+        "/std:c++17",
+        "/MT",
+
+        # Disable a bunch of warnings.
+        "/wd5030",  # Warnings about unknown attributes.
+        "/wd4244",  # Conversion from 'float' to 'int', possible loss of data.
+        "/wd4267",  # Conversion from 'size_t' to 'int', possible loss of data.
+        "/wd4800",  # Forcing value to bool 'true' or 'false'.
+        "/wd4180",  # Qualifier applied to function type has no meaning.
+    ]
+else:
+    EXTRA_COMPILE_ARGS = ['-std=c++17', '-stdlib=libc++']
+
+SKIA_ROOT = "../../../DevKit/skia"
+GLEW_ROOT = "../../../DevKit/glew_2_1_0"
+
+skia_flags = {
+    'include_dirs': [SKIA_ROOT],#, os.path.join(GLEW_ROOT, 'include')],
+    'libraries': SKIA_LIBRARIES,
+
+    'library_dirs': [os.path.join(SKIA_ROOT, 'out', "Static")],
+    'extra_link_args': [],
+    'language': 'c++',
+    'extra_compile_args': EXTRA_COMPILE_ARGS,
+    
+}
+
 sources = {
     '_event.pyx': merge(base_flags, {'depends': ['properties.pxd']}),
     '_clock.pyx': {},
@@ -966,7 +1015,9 @@ sources = {
         ]
     }),
     'graphics/svg.pyx': merge(base_flags, gl_flags_base),
-    'graphics/boxshadow.pyx': merge(base_flags, gl_flags_base)
+    'graphics/boxshadow.pyx': merge(base_flags, gl_flags_base),
+    
+    'core/skia/skia_wrapper.pyx': merge(base_flags, skia_flags),
 }
 
 if c_options["use_sdl2"]:
