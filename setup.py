@@ -926,7 +926,6 @@ SKIA_LIBRARIES = [
     "skshaper",
     "skunicode_core",
     "skunicode_icu",
-    # "opengl32",
 
     "skottie",
     "skresources",
@@ -938,6 +937,10 @@ if sys.platform == "win32":
             "FontSub",
             "Advapi32",
             "OpenGL32",
+
+            # specific to my compiled binaries
+            "d3d12",
+            "d3dcompiler",
         ]
     )
     EXTRA_COMPILE_ARGS = [
@@ -955,17 +958,23 @@ else:
     EXTRA_COMPILE_ARGS = ['-std=c++17', '-stdlib=libc++']
 
 SKIA_ROOT = "../../../DevKit/skia"
-GLEW_ROOT = "../../../DevKit/glew_2_1_0"
+ANGLE_ROOT = "../../../DevKit/angle"
+
 
 skia_flags = {
-    'include_dirs': [SKIA_ROOT],#, os.path.join(GLEW_ROOT, 'include')],
-    'libraries': SKIA_LIBRARIES,
-
-    'library_dirs': [os.path.join(SKIA_ROOT, 'out', "Static")],
-    'extra_link_args': [],
-    'language': 'c++',
-    'extra_compile_args': EXTRA_COMPILE_ARGS,
-    
+    "include_dirs": [
+        SKIA_ROOT,
+        os.path.join(ANGLE_ROOT, "include"),
+        
+    ],
+    "libraries": SKIA_LIBRARIES + ["sdl2", "libEGL", "libGLESv2"],
+    "library_dirs": [
+        os.path.join(ANGLE_ROOT, "bin"),
+        os.path.join(SKIA_ROOT, "out", "windows-x64"),
+    ],
+    "extra_link_args": [],
+    "language": "c++",
+    "extra_compile_args": EXTRA_COMPILE_ARGS,
 }
 
 sources = {

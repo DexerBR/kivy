@@ -18,10 +18,37 @@
 
 #include "src/gpu/ganesh/gl/GrGLDefines.h"
 #include "src/gpu/ganesh/SurfaceDrawContext.h"
+#include "src/gpu/ganesh/gl/GrGLUtil.h"
 
-#include "GL/glew.h"
+#include <GL/glew.h>
+
+// angle
+#include "include/gpu/gl/GrGLAssembleInterface.h"
+#include <EGL/egl.h>
 
 using namespace skgpu;
+
+
+
+sk_sp<const GrGLInterface> gl_interface;
+
+void initialize_gl_interface(bool use_angle)
+{
+    // angle
+    if (use_angle)
+    {
+        gl_interface = GrGLMakeAssembledInterface(
+            nullptr,
+            [](void *ctx, const char name[]) -> GrGLFuncPtr
+            { return eglGetProcAddress(name); });
+    }
+    else
+    {
+        gl_interface = GrGLMakeNativeInterface();
+    }
+}
+
+
 
 SkColor randomColor()
 {
@@ -46,35 +73,20 @@ SkCanvas *create_canvas(SkBitmap bitmap)
 struct GLState
 {
     GLint viewport[4];
-    GLboolean blendEnabled;
-    // GLint blendSrc, blendDst;
+    // GLboolean blendEnabled;
 };
 
 void saveGLState(GLState &state)
 {
-    glGetIntegerv(GL_VIEWPORT, state.viewport);
-    state.blendEnabled = glIsEnabled(GL_BLEND);
-    // glGetIntegerv(GL_BLEND_SRC_ALPHA, &state.blendSrc);
-    // glGetIntegerv(GL_BLEND_DST_ALPHA, &state.blendDst);
+    gl_interface->fFunctions.fGetIntegerv(GR_GL_VIEWPORT, state.viewport);
 }
 
 void restoreGLState(void *data)
 {
     GLState *state = static_cast<GLState *>(data);
 
-    // Restore viewport
-    glViewport(state->viewport[0], state->viewport[1], state->viewport[2], state->viewport[3]);
-
-    if (state->blendEnabled)
-    {
-        glEnable(GL_BLEND);
-    }
-    else
-    {
-        glDisable(GL_BLEND);
-    }
-    // glBlendFunc(state->blendSrc, state->blendDst);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl_interface->fFunctions.fViewport(state->viewport[0], state->viewport[1], state->viewport[2], state->viewport[3]);
+    gl_interface->fFunctions.fBlendFunc(GR_GL_SRC_ALPHA, GR_GL_ONE_MINUS_SRC_ALPHA);
 
     delete state; // Free the memory
 }
@@ -141,9 +153,7 @@ sk_sp<SkSVGDOM> get_svg_dom(const char *svgFilePath)
 #include "modules/svg/include/SkSVGValue.h"
 
 
-
 // void printSVGSize(const SkSVGDOM& svgDOM) {
-//     // Obtendo o tamanho do contêiner
 //     SkSize containerSize = svgDOM.containerSize();
 //     std::cout << "Container Size: Width = " << containerSize.width() 
 //               << ", Height = " << containerSize.height() << std::endl;
@@ -178,8 +188,8 @@ void render_svg(sk_sp<SkSVGDOM> svgDom, SkCanvas *canvas, const SkBitmap &bitmap
         set_svg_size(svgDom, tex_width, tex_height);
         svgDom->render(canvas);
 
-        glBindTexture(GL_TEXTURE_2D, buffer_id);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, tex_width, tex_height, GL_BGRA, GL_UNSIGNED_BYTE, bitmap.getPixels());
+        gl_interface->fFunctions.fBindTexture(GR_GL_TEXTURE_2D, buffer_id);
+        gl_interface->fFunctions.fTexSubImage2D(GR_GL_TEXTURE_2D, 0, 0, 0, tex_width, tex_height, GR_GL_RGBA, GR_GL_UNSIGNED_BYTE, bitmap.getPixels());
     }
     else
     {
@@ -193,12 +203,11 @@ void render_svg_direct_gpu(sk_sp<SkSVGDOM> svgDom, unsigned int tex_width, unsig
     int height = tex_height;
     GrGLTextureInfo texInfo;
 
-    texInfo.fTarget = GL_TEXTURE_2D;
+    texInfo.fTarget = GR_GL_TEXTURE_2D;
     texInfo.fID = buffer_id;
     texInfo.fFormat = GR_GL_RGBA8;
 
-    auto interface = GrGLMakeNativeInterface();
-    sk_sp<GrDirectContext> context = GrDirectContexts::MakeGL(interface);
+    sk_sp<GrDirectContext> context = GrDirectContexts::MakeGL(gl_interface);
     if (!context)
     {
         printf("Failed to create GrDirectContext!\n");
@@ -254,7 +263,7 @@ void render_svg_direct_gpu(sk_sp<SkSVGDOM> svgDom, unsigned int tex_width, unsig
 void draw_canvas(SkCanvas *canvas, SkBitmap bitmap, unsigned int buffer_id)
 {
     GrGLTextureInfo texInfo;
-    texInfo.fTarget = GL_TEXTURE_2D;
+    texInfo.fTarget = GR_GL_TEXTURE_2D;
     texInfo.fID = buffer_id;
     texInfo.fFormat = GR_GL_RGBA8;
 
@@ -269,8 +278,8 @@ void draw_canvas(SkCanvas *canvas, SkBitmap bitmap, unsigned int buffer_id)
     SkScalar radius = SkIntToScalar(150);
     canvas->drawCircle(x, y, radius, paint);
 
-    glBindTexture(GL_TEXTURE_2D, buffer_id);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bitmap.dimensions().width(), bitmap.dimensions().height(), GL_BGRA, GL_UNSIGNED_BYTE, bitmap.getPixels());
+    gl_interface->fFunctions.fBindTexture(GR_GL_TEXTURE_2D, buffer_id);
+    gl_interface->fFunctions.fTexSubImage2D(GR_GL_TEXTURE_2D, 0, 0, 0, bitmap.dimensions().width(), bitmap.dimensions().height(), GR_GL_RGBA, GR_GL_UNSIGNED_BYTE, bitmap.getPixels());
 }
 
 void draw_canvas_gpu_direct(unsigned int buffer_id, unsigned int tex_width, unsigned int tex_height)
@@ -279,12 +288,11 @@ void draw_canvas_gpu_direct(unsigned int buffer_id, unsigned int tex_width, unsi
     int height = tex_height;
     GrGLTextureInfo texInfo;
 
-    texInfo.fTarget = GL_TEXTURE_2D;
+    texInfo.fTarget = GR_GL_TEXTURE_2D;
     texInfo.fID = buffer_id;
     texInfo.fFormat = GR_GL_RGBA8;
 
-    auto interface = GrGLMakeNativeInterface();
-    sk_sp<GrDirectContext> context = GrDirectContexts::MakeGL(interface);
+    sk_sp<GrDirectContext> context = GrDirectContexts::MakeGL(gl_interface);
     if (!context)
     {
         printf("Failed to create GrDirectContext!\n");
@@ -333,6 +341,10 @@ void draw_canvas_gpu_direct(unsigned int buffer_id, unsigned int tex_width, unsi
         delete state; // Free the memory allocated for the state in case of an error
     }
 }
+
+
+
+
 
 // void draw_canvas_gpu_direct(unsigned int buffer_id, unsigned int tex_width, unsigned int tex_height)
 // {
