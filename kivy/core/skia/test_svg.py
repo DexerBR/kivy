@@ -1,4 +1,7 @@
 import os
+# os.environ["KIVY_GL_BACKEND"] = "angle_sdl2"
+
+import os
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.floatlayout import FloatLayout
@@ -155,8 +158,8 @@ class UI(FloatLayout):
 
         Color:
             rgba: 1, 1, 1, 1
-        SkiaSVG_GPU:
-        # SkiaSVG:
+        # SkiaSVG_GPU:
+        SkiaSVG:
             pos: root.touch_pos[0] - (250 * root.svg_scale), root.touch_pos[1] - (250 * root.svg_scale)
             size: 500 * root.svg_scale, 500 * root.svg_scale
             source: root.svg_source

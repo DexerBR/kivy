@@ -1,3 +1,6 @@
+import os
+
+
 cdef extern from "include/core/SkCanvas.h":
     cdef cppclass SkCanvas
 
@@ -21,6 +24,8 @@ cdef extern from "include/core/SkFontMgr.h":
 
 
 cdef extern from "skia_implem.cpp":
+    void initialize_gl_interface(bint use_angle)
+
     SkBitmap create_bitmap(unsigned int tex_width, unsigned int tex_height) nogil
     SkCanvas *create_canvas(SkBitmap bitmap) nogil
     void draw_canvas(SkCanvas* canvas, SkBitmap bitmap, unsigned int tex_id) nogil
@@ -32,6 +37,10 @@ cdef extern from "skia_implem.cpp":
 
     void render_svg_direct_gpu(sk_sp[SkSVGDOM] svgDom, unsigned int tex_width, unsigned int tex_height, unsigned int buffer_id) nogil
 
+
+# initialize the interface for the gl backend. The interface has similar usage to kivy's "cgl.<gl function>".
+# but it is accessed through interface->fFunctions.f<gl function>
+initialize_gl_interface("angle" in os.environ.get("KIVY_GL_BACKEND", ""))
 
 
 
