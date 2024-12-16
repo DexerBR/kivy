@@ -210,7 +210,7 @@ kivy_options = {
     'text': ('pil', 'sdl2', 'sdlttf'),
     'video': (
         'gstplayer', 'ffmpeg', 'ffpyplayer', 'null'),
-    'audio': (
+    'audio_output': (
         'gstplayer', 'ffpyplayer', 'sdl2',
         'avplayer'),
     'image': ('tex', 'imageio', 'dds', 'sdl2', 'pil', 'ffpy', 'gif'),
@@ -222,15 +222,15 @@ kivy_options = {
         'sdl2', 'dummy', 'gtk3', )}
 
 # Read environment
-for option in kivy_options:
+for option, value in kivy_options.items():
     key = 'KIVY_%s' % option.upper()
     if key in environ:
         try:
-            if type(kivy_options[option]) in (list, tuple):
+            if type(value) in {list, tuple}:
                 kivy_options[option] = environ[key].split(',')
             else:
                 kivy_options[option] = environ[key].lower() in \
-                    ('true', '1', 'yes')
+                    {'true', '1', 'yes'}
         except Exception:
             Logger.warning('Core: Wrong value for %s environment key' % key)
             Logger.exception('')
