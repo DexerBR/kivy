@@ -957,7 +957,7 @@ if sys.platform == "win32":
 else:
     EXTRA_COMPILE_ARGS = ['-std=c++17', '-stdlib=libc++']
 
-SKIA_ROOT = "../../../DevKit/skia"
+SKIA_ROOT = "../../../DevKit/skia-windows-x64"
 ANGLE_ROOT = "../../../DevKit/angle"
 
 
@@ -970,7 +970,7 @@ skia_flags = {
     "libraries": SKIA_LIBRARIES + ["sdl2", "libEGL", "libGLESv2"],
     "library_dirs": [
         os.path.join(ANGLE_ROOT, "bin"),
-        os.path.join(SKIA_ROOT, "out", "windows-x64"),
+        os.path.join(SKIA_ROOT, "bin"),
     ],
     "extra_link_args": [],
     "language": "c++",

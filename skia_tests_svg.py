@@ -15,7 +15,7 @@ from kivy.factory import Factory
 from pathlib import Path
 
 
-from skia_wrapper import SkSvgDraw, SkSvgDrawDirectGPU
+from kivy.core.skia.skia_wrapper import SkSvgDraw, SkSvgDrawDirectGPU
 
 
 
@@ -197,7 +197,7 @@ class UI(FloatLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.directory = Path(__file__).resolve().parent / "svgs"
+        self.directory = Path(__file__).resolve().parent / "skia_tests_svgs"
         self.svg_files = [file for file in os.listdir(self.directory) if file.lower().endswith('.svg')]
         self.svg_file_index = 0
 

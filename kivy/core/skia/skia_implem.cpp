@@ -1,8 +1,9 @@
 #include "include/core/SkBitmap.h"
 
 #include "include/core/SkColorSpace.h"
-#include "include/gpu/GrDirectContext.h"
-#include "include/gpu/gl/GrGLTypes.h"
+#include "include/gpu/ganesh/GrDirectContext.h"
+#include "include/gpu/ganesh/gl/GrGLTypes.h"
+
 #include "include/core/SkCanvas.h"
 #include "include/core/SkSurface.h"
 #include "include/core/SkImage.h"
@@ -11,19 +12,21 @@
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
 #include "include/gpu/ganesh/gl/GrGLBackendSurface.h"
 
-#include "include/gpu/GrBackendSurface.h"
+
+
+
+#include "include/gpu/ganesh/GrBackendSurface.h"
 #include "include/gpu/GpuTypes.h"
-#include "include/gpu/gl/GrGLInterface.h"
+#include "include/gpu/ganesh/gl/GrGLInterface.h"
 #include "include/gpu/ganesh/gl/GrGLDirectContext.h"
 
 #include "src/gpu/ganesh/gl/GrGLDefines.h"
 #include "src/gpu/ganesh/SurfaceDrawContext.h"
-#include "src/gpu/ganesh/gl/GrGLUtil.h"
 
 #include <GL/glew.h>
 
 // angle
-#include "include/gpu/gl/GrGLAssembleInterface.h"
+#include "include/gpu/ganesh/gl/GrGLAssembleInterface.h"
 #include <EGL/egl.h>
 
 using namespace skgpu;

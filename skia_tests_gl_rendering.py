@@ -10,7 +10,7 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 
 
-from skia_wrapper import BasicDraw, basic_draw_direct_gpu
+from kivy.core.skia.skia_wrapper import BasicDraw, basic_draw_direct_gpu
 
 
 class UI(FloatLayout):
@@ -49,7 +49,10 @@ class UI(FloatLayout):
         size_hint: 0.3, 0.2
         pos_hint: {'center_x': 0.5, 'center_y': 0.5}
         on_release:
+            # CPU
             # root.run_1()
+            
+            # GPU
             root.run_2()
 """)
 
