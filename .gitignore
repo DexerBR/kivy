@@ -84,3 +84,7 @@ venv
 kivy/setupconfig.py
 
 kivy/core/clipboard/_clipboard_sdl2.c
+kivy/core/audio_output/audio_sdl2.c
+kivy/graphics/egl_backend/egl_angle.c
+/.vscode
+kivy/core/skia/pure_skia.cpp
