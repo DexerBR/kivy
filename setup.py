@@ -980,7 +980,6 @@ skia_flags = {
     "libraries": SKIA_LIBRARIES,
     "library_dirs": LIBRARIES_DIRS,
     "extra_link_args": [],
-    "language": "c++",
     "extra_compile_args": EXTRA_COMPILE_ARGS,
 }
 
