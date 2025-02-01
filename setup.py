@@ -761,7 +761,7 @@ def determine_gl_flags():
         c_options['use_x11'] = True
         c_options['use_egl'] = True
     else:
-        flags['libraries'] = ['GL']
+        flags['libraries'] = ['GL', 'EGL']
     return flags, base_flags
 
 
@@ -919,6 +919,8 @@ graphics_dependencies = {
         'cgl.pxd', 'texture.pxd', 'vertex_instructions_line.pxi'],
     'vertex_instructions_line.pxi': ['stencil_instructions.pxd']}
 
+if c_options["use_sdl2"]:
+    sdl2_flags = determine_sdl2()
 
 SKIA_LIBRARIES = [
     "skia",
@@ -955,14 +957,14 @@ if sys.platform == "win32":
         "/wd4180",  # Qualifier applied to function type has no meaning.
     ]
 else:
-    EXTRA_COMPILE_ARGS = ['-std=c++17', '-stdlib=libc++']
+    EXTRA_COMPILE_ARGS = ['-std=c++17']
 
 
 if sys.platform == "win32":
     SKIA_ROOT = "../../../DevKit/skia-windows-x64"
     ANGLE_ROOT = "../../../DevKit/angle"
 else:
-    SKIA_ROOT = "/Users/mirko/Documents/projects/skia-builder/output/macos-arm64"
+    SKIA_ROOT = "/home/mirko/Documents/skia-builder/output/linux-arm64"
 
 
 LIBRARIES_DIRS = [os.path.join(SKIA_ROOT, "bin")]
@@ -984,7 +986,7 @@ skia_flags = {
     "extra_compile_args": EXTRA_COMPILE_ARGS,
 }
 
-skia_flags = merge(merge(skia_flags, gl_flags_base), gl_flags)
+skia_flags = merge(merge(merge(skia_flags, gl_flags_base), gl_flags), sdl2_flags)
 
 sources = {
     '_event.pyx': merge(base_flags, {'depends': ['properties.pxd']}),
@@ -1036,9 +1038,6 @@ sources = {
     'graphics/boxshadow.pyx': merge(base_flags, gl_flags_base),
     'core/skia/pure_skia.pyx': merge(base_flags, skia_flags),
 }
-
-if c_options["use_sdl2"]:
-    sdl2_flags = determine_sdl2()
 
 if c_options['use_sdl2'] and sdl2_flags:
     sources['graphics/cgl_backend/cgl_sdl2.pyx'] = merge(
