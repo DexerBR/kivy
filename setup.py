@@ -915,9 +915,6 @@ graphics_dependencies = {
         'cgl.pxd', 'texture.pxd', 'vertex_instructions_line.pxi'],
     'vertex_instructions_line.pxi': ['stencil_instructions.pxd']}
 
-if c_options["use_sdl2"]:
-    sdl2_flags = determine_sdl2()
-
 SKIA_LIBRARIES = [
     "skia",
     "svg",
@@ -962,8 +959,10 @@ if sys.platform == "win32":
 else:
     SKIA_ROOT = "/home/mirko/Documents/skia-builder/output/linux-arm64"
 
-
-LIBRARIES_DIRS = [os.path.join(SKIA_ROOT, "bin")]
+if sys.platform != "ios":
+    LIBRARIES_DIRS = [os.path.join(SKIA_ROOT, "bin")]
+else:
+    LIBRARIES_DIRS = [os.environ.get("SKIA_LIB_DIR", "")]
 
 if sys.platform == "win32":
     SKIA_LIBRARIES.extend(["libEGL", "libGLESv2"])
@@ -972,8 +971,7 @@ if sys.platform == "win32":
 
 skia_flags = {
     "include_dirs": [
-        SKIA_ROOT,
-
+        os.environ.get("SKIA_INCLUDE_DIR", SKIA_ROOT),
     ],
     "libraries": SKIA_LIBRARIES,
     "library_dirs": LIBRARIES_DIRS,
@@ -982,7 +980,10 @@ skia_flags = {
     "extra_compile_args": EXTRA_COMPILE_ARGS,
 }
 
-skia_flags = merge(merge(merge(skia_flags, gl_flags_base), gl_flags), sdl2_flags)
+if c_options["use_sdl3"]:
+    sdl3_flags = determine_sdl3()
+
+skia_flags = merge(merge(merge(skia_flags, gl_flags_base), gl_flags), sdl3_flags)
 
 sources = {
     '_event.pyx': merge(base_flags, {'depends': ['properties.pxd']}),
@@ -1034,9 +1035,6 @@ sources = {
     'graphics/boxshadow.pyx': merge(base_flags, gl_flags_base),
     'core/skia/pure_skia.pyx': merge(base_flags, skia_flags),
 }
-
-if c_options["use_sdl3"]:
-    sdl3_flags = determine_sdl3()
 
 if c_options['use_sdl3'] and sdl3_flags:
     sources['graphics/cgl_backend/cgl_sdl3.pyx'] = merge(
