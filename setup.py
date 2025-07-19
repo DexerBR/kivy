@@ -955,7 +955,8 @@ else:
 
 if sys.platform == "win32":
     SKIA_ROOT = "../../../DevKit/skia-windows-x64"
-    ANGLE_ROOT = "../../../DevKit/angle"
+    # SKIA_ROOT = r"S:\Outros\SKIA_DEV\output\windows-x64"
+    # ANGLE_ROOT = "../../../DevKit/angle"
 else:
     SKIA_ROOT = "/home/mirko/Documents/skia-builder/output/linux-arm64"
 
@@ -964,9 +965,9 @@ if sys.platform != "ios":
 else:
     LIBRARIES_DIRS = [os.environ.get("SKIA_LIB_DIR", "")]
 
-if sys.platform == "win32":
-    SKIA_LIBRARIES.extend(["libEGL", "libGLESv2"])
-    LIBRARIES_DIRS.extend([os.path.join(ANGLE_ROOT, "bin")])
+# if sys.platform == "win32":
+#     SKIA_LIBRARIES.extend(["libEGL", "libGLESv2"])
+#     LIBRARIES_DIRS.extend([os.path.join(ANGLE_ROOT, "bin")])
 
 
 skia_flags = {
