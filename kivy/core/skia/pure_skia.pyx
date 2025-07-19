@@ -78,8 +78,10 @@ cdef class SkiaSurface:
             flushAndSubmit(self.context)
 
 
-    cpdef draw_lottie(self, const char* animation_path):
-        drawLottie(self.canvas, self.context, animation_path)
+    cpdef void draw_lottie(self, str animation_path):
+        cdef bytes encoded_path = animation_path.encode("utf-8")
+        cdef const char* c_path = encoded_path
+        drawLottie(self.canvas, self.context, c_path)
 
     cpdef lottie_seek(self, float t):
         drawLottieNextFrame(self.canvas, self.context, t)
