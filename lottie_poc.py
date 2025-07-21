@@ -34,6 +34,7 @@ class UI(FloatLayout):
         # Window.skia_surface.draw_lottie("anim_1.json")
         # Window.skia_surface.draw_lottie("anim_2.json")
         # Window.skia_surface.draw_lottie("anim_3.json")
+        # Window.skia_surface.draw_lottie("anim_4.json")
 
         def _update_lottie_pos_size(dt):
             Window.skia_surface.update_lottie_pos_and_size(

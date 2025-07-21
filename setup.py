@@ -917,6 +917,7 @@ graphics_dependencies = {
 
 SKIA_LIBRARIES = [
     "skia",
+    "jsonreader",
     "svg",
     "skshaper",
     "skunicode_core",
@@ -932,10 +933,6 @@ if sys.platform == "win32":
             "FontSub",
             "Advapi32",
             "OpenGL32",
-
-            # specific to my compiled binaries
-            "d3d12",
-            "d3dcompiler",
         ]
     )
     EXTRA_COMPILE_ARGS = [
@@ -955,7 +952,6 @@ else:
 
 if sys.platform == "win32":
     SKIA_ROOT = "../../../DevKit/skia-windows-x64"
-    # SKIA_ROOT = r"S:\Outros\SKIA_DEV\output\windows-x64"
     # ANGLE_ROOT = "../../../DevKit/angle"
 else:
     SKIA_ROOT = "/home/mirko/Documents/skia-builder/output/linux-arm64"
