@@ -1,4 +1,10 @@
+"""
+Usage Note:
+You can navigate between Lottie animations using the < and > keys on your keyboard.
+"""
+
 import os
+
 os.environ["KIVY_GL_BACKEND"] = "angle_sdl3"
 
 import random
@@ -6,8 +12,6 @@ import random
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivy.lang import Builder
-from kivy.properties import ListProperty, ObjectProperty
 from kivy.uix.floatlayout import FloatLayout
 
 from kivy.core.skia.pure_skia import SkiaSurface
@@ -29,39 +33,57 @@ class UI(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        Window.skia_surface.draw_lottie("confetti.json")
-        # Window.skia_surface.draw_lottie("lego_loader.json")
-        # Window.skia_surface.draw_lottie("anim_1.json")
-        # Window.skia_surface.draw_lottie("anim_2.json")
-        # Window.skia_surface.draw_lottie("anim_3.json")
-        # Window.skia_surface.draw_lottie("anim_4.json")
+        self.lottie_files = [
+            "confetti.json",
+            "lego_loader.json",
+            "anim_1.json",
+            "anim_2.json",
+            "anim_3.json",
+            "anim_4.json",
+        ]
+        self.current_index = 1  # "lego_loader.json"
+        self.t = 0
 
-        def _update_lottie_pos_size(dt):
-            Window.skia_surface.update_lottie_pos_and_size(
-                random.randint(0, 300),
-                random.randint(0, 300),
-                *[random.randint(100, 500)] * 2,
+        self.load_lottie()
+
+        Clock.schedule_interval(self._update_lottie_pos_size, 1)
+        Clock.schedule_interval(self._update_lottie_anim, 1 / 60)
+
+        Window.bind(on_key_down=self.on_key_down)
+
+    def load_lottie(self):
+        filename = self.lottie_files[self.current_index]
+        Window.skia_surface.draw_lottie(filename)
+        print(f"Loaded Lottie: {filename}")
+
+    def on_key_down(self, window, key, scancode, codepoint, modifier):
+        if key == 275:
+            self.current_index = (self.current_index + 1) % len(
+                self.lottie_files
             )
+            self.load_lottie()
+        elif key == 276:
+            self.current_index = (self.current_index - 1) % len(
+                self.lottie_files
+            )
+            self.load_lottie()
 
-        Clock.schedule_interval(_update_lottie_pos_size, 1)
+    def _update_lottie_pos_size(self, dt):
+        Window.skia_surface.update_lottie_pos_and_size(
+            random.randint(0, 300),
+            random.randint(0, 300),
+            *[random.randint(100, 500)] * 2,
+        )
 
-        t = 0
+    def _update_lottie_anim(self, dt):
+        self.t += 1 / 300
+        if self.t >= 1:
+            self.t = 0
 
-        def _update_lottie_anim(dt):
-            nonlocal t
-            t += (
-                1 / 300
-            )  # 300 is hardcoded; the higher the value, the slower the animation
-
-            Window.skia_surface.clear_canvas(0, 0, 100, 255)
-            Window.skia_surface.lottie_seek(t)
-            Window.skia_surface.context_flush_and_submit()
-            Window.flip()
-
-            if t >= 1:
-                t = 0
-
-        Clock.schedule_interval(_update_lottie_anim, 1 / 60)
+        Window.skia_surface.clear_canvas(0, 0, 100, 255)
+        Window.skia_surface.lottie_seek(self.t)
+        Window.skia_surface.context_flush_and_submit()
+        Window.flip()
 
 
 class MyApp(App):
