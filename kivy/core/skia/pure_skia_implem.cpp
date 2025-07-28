@@ -105,12 +105,13 @@ bool load_egl_dll() {
     return false;
     
 #else
-    // Linux/macOS
+    // Linux / macOS (with ANGLE)
     const char* so_names[] = {
         "libEGL.so.1",
         "libEGL.so",
         "libGL.so.1", 
         "libGL.so"
+        "libEGL.dylib",
     };
     
     for (const char* so_name : so_names) {

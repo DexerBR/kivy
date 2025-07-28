@@ -950,28 +950,25 @@ else:
     EXTRA_COMPILE_ARGS = ['-std=c++17']
 
 
-if sys.platform == "win32":
-    SKIA_ROOT = "../../../DevKit/skia-windows-x64"
-    # ANGLE_ROOT = "../../../DevKit/angle"
-else:
-    SKIA_ROOT = "/home/mirko/Documents/skia-builder/output/linux-arm64"
+SKIA_ROOT = os.environ.get("SKIA_ROOT", None)
 
-if sys.platform != "ios":
-    LIBRARIES_DIRS = [os.path.join(SKIA_ROOT, "bin")]
+if os.environ.get("SKIA_LIB_DIR", None):
+    SKIA_LIBRARIES_DIRS = [os.environ["SKIA_LIB_DIR"]]
 else:
-    LIBRARIES_DIRS = [os.environ.get("SKIA_LIB_DIR", "")]
+    SKIA_LIBRARIES_DIRS = [os.path.join(SKIA_ROOT, "bin")]
 
-# if sys.platform == "win32":
-#     SKIA_LIBRARIES.extend(["libEGL", "libGLESv2"])
-#     LIBRARIES_DIRS.extend([os.path.join(ANGLE_ROOT, "bin")])
+if os.environ.get("SKIA_INCLUDE_DIR", None):
+    SKIA_INCLUDE_DIRS = [os.environ["SKIA_INCLUDE_DIR"]]
+else:
+    SKIA_INCLUDE_DIRS = [SKIA_ROOT]
 
 
 skia_flags = {
     "include_dirs": [
-        os.environ.get("SKIA_INCLUDE_DIR", SKIA_ROOT),
+        SKIA_INCLUDE_DIRS,
     ],
     "libraries": SKIA_LIBRARIES,
-    "library_dirs": LIBRARIES_DIRS,
+    "library_dirs": SKIA_LIBRARIES_DIRS,
     "extra_link_args": [],
     "language": "c++",
     "extra_compile_args": EXTRA_COMPILE_ARGS,
@@ -980,7 +977,9 @@ skia_flags = {
 if c_options["use_sdl3"]:
     sdl3_flags = determine_sdl3()
 
-skia_flags = merge(merge(merge(skia_flags, gl_flags_base), gl_flags), sdl3_flags)
+skia_flags = merge(
+    merge(merge(skia_flags, gl_flags_base), gl_flags), sdl3_flags
+)
 
 sources = {
     '_event.pyx': merge(base_flags, {'depends': ['properties.pxd']}),
