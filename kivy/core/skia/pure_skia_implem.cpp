@@ -67,6 +67,12 @@ static HMODULE egl_dll = nullptr;
 static void* egl_dll = nullptr;
 #endif
 
+#if defined(__APPLE__) && (TARGET_OS_IOS || TARGET_OS_SIMULATOR)
+    #include <CoreFoundation/CoreFoundation.h>
+#endif
+
+
+
 // Function to load EGL DLL dynamically
 bool load_egl_dll() {
 #ifdef _WIN32
@@ -103,18 +109,41 @@ bool load_egl_dll() {
     
     printf("Failed to load any EGL/OpenGL DLL\n");
     return false;
-    
 #else
-    // Linux / macOS (with ANGLE)
+    // Avoid redefinition and keep so_names local to this block
     const char* so_names[] = {
+    #if defined(__APPLE__) && (TARGET_OS_IOS || TARGET_OS_SIMULATOR)
+        // iOS/tvOS: dynamically construct path to libEGL.dylib in app bundle
+        nullptr
+    #else
         "libEGL.so.1",
         "libEGL.so",
-        "libGL.so.1", 
-        "libGL.so"
-        "libEGL.dylib",
+        "libGL.so.1",
+        "libGL.so",
+        "libEGL.dylib"
+    #endif
     };
+
+#if defined(__APPLE__) && (TARGET_OS_IOS || TARGET_OS_SIMULATOR)
+    // for iOS, we need to construct the path to the libEGL framework
+    // We should look into the app bundle's private frameworks directory to find the libEGL framework.
+    // We can't hardcode the path cause it changes.
+    char bundlePath[PATH_MAX] = {0};
+    CFBundleRef mainBundle = CFBundleGetMainBundle();
+    if (mainBundle) {
+        CFURLRef frameworksURL = CFBundleCopyPrivateFrameworksURL(mainBundle);
+        if (frameworksURL) {
+            if (CFURLGetFileSystemRepresentation(frameworksURL, true, (UInt8*)bundlePath, sizeof(bundlePath))) {
+                strncat(bundlePath, "/libEGL.framework/libEGL", sizeof(bundlePath) - strlen(bundlePath) - 1);
+                so_names[0] = bundlePath;
+            }
+            CFRelease(frameworksURL);
+        }
+    }
+#endif
     
     for (const char* so_name : so_names) {
+        printf("Trying to load EGL/OpenGL shared library: %s\n", so_name);
         egl_dll = dlopen(so_name, RTLD_LAZY);
         if (egl_dll) {
             printf("Successfully loaded %s\n", so_name);
