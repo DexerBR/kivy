@@ -964,9 +964,7 @@ else:
 
 
 skia_flags = {
-    "include_dirs": [
-        SKIA_INCLUDE_DIRS,
-    ],
+    "include_dirs": SKIA_INCLUDE_DIRS,
     "libraries": SKIA_LIBRARIES,
     "library_dirs": SKIA_LIBRARIES_DIRS,
     "extra_link_args": [],
