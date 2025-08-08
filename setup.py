@@ -916,16 +916,16 @@ graphics_dependencies = {
     'vertex_instructions_line.pxi': ['stencil_instructions.pxd']}
 
 SKIA_LIBRARIES = [
-    "skia",
-    "jsonreader",
-    "svg",
-    "skshaper",
-    "skunicode_core",
-    "skunicode_icu",
-
-    "skottie",
     "skresources",
+    "svg",
+    "skottie",
+    "jsonreader",
     "sksg",
+    "skshaper",
+    "pathops",
+    "skunicode_icu",
+    "skunicode_core",
+    "skia",
 ]
 if sys.platform == "win32":
     SKIA_LIBRARIES.extend(
