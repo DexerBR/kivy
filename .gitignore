@@ -88,3 +88,4 @@ kivy/graphics/egl_backend/egl_angle.c
 /.vscode
 kivy/core/skia/pure_skia.cpp
 kivy/core/image/_img_sdl3.cpp
+/.kivy
