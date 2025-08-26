@@ -1465,9 +1465,12 @@ class WindowBase(EventDispatcher):
             ignored=self.gl_backends_ignored)
 
     def initialize_gl(self):
-        from kivy.core.gl import init_gl
-        init_gl(allowed=self.gl_backends_allowed,
-                ignored=self.gl_backends_ignored)
+        # from kivy.core.gl import init_gl
+        # init_gl(allowed=self.gl_backends_allowed,
+        #         ignored=self.gl_backends_ignored)
+
+        from kivy.core.skia.skia_graphics import initialize_skia_gl
+        initialize_skia_gl("angle" in self.get_gl_backend_name())
 
     def create_window(self, *largs):
         '''Will create the main window and configure it.
@@ -1499,13 +1502,19 @@ class WindowBase(EventDispatcher):
             self.initialize_gl()
 
             # create the render context and canvas, only the first time.
-            from kivy.graphics import RenderContext, Canvas
-            self.render_context = RenderContext()
-            self.canvas = Canvas()
+
+            from kivy.core.skia.graphics.graphics import SkiaRenderContext, SkiaCanvas
+            self.render_context = SkiaRenderContext()
+            self.canvas = SkiaCanvas()
             self.render_context.add(self.canvas)
 
-            if self.shapable:
-                self._set_fsshader_for_shape()
+            # from kivy.graphics import RenderContext, Canvas
+            # self.render_context = RenderContext()
+            # self.canvas = Canvas()
+            # self.render_context.add(self.canvas)
+
+            # if self.shapable:
+            #     self._set_fsshader_for_shape()
 
         else:
             # if we get initialized more than once, then reload opengl state
@@ -1583,13 +1592,14 @@ class WindowBase(EventDispatcher):
     def clear(self):
         '''Clear the window with the background color'''
         # XXX FIXME use late binding
-        from kivy.graphics import opengl as gl
-        gl.glClearColor(*self.clearcolor)
-        gl.glClear(
-            gl.GL_COLOR_BUFFER_BIT
-            | gl.GL_DEPTH_BUFFER_BIT
-            | gl.GL_STENCIL_BUFFER_BIT
-        )
+        # from kivy.graphics import opengl as gl
+        # gl.glClearColor(*self.clearcolor)
+        # gl.glClear(
+        #     gl.GL_COLOR_BUFFER_BIT
+        #     | gl.GL_DEPTH_BUFFER_BIT
+        #     | gl.GL_STENCIL_BUFFER_BIT
+        # )
+        self.render_context.clear(self.clearcolor)
 
     def set_title(self, title):
         '''Set the window title.
@@ -1776,6 +1786,16 @@ class WindowBase(EventDispatcher):
         self.property('left').dispatch(self)
 
     def update_viewport(self):
+        self.render_context.update_viewport(self.size)
+
+        self.canvas.ask_update()
+
+        # and update childs
+        self.update_childsize()
+
+
+        return
+
         from kivy.graphics.opengl import glViewport
         from kivy.graphics.transformation import Matrix
         from math import radians

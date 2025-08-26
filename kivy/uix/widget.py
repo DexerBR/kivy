@@ -236,6 +236,7 @@ at the parent's right at each layout update.
 
 __all__ = ('Widget', 'WidgetException')
 
+from kivy.core.skia.graphics.graphics import SkiaCanvas
 from kivy.event import EventDispatcher
 from kivy.eventmanager import (
     MODE_DONT_DISPATCH,
@@ -358,7 +359,7 @@ class Widget(WidgetBase):
 
         # Create the default canvas if it does not exist.
         if self.canvas is None:
-            self.canvas = Canvas(opacity=self.opacity)
+            self.canvas = SkiaCanvas(opacity=self.opacity)
 
         # Apply all the styles.
         if not no_builder:

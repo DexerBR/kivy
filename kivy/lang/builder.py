@@ -907,7 +907,7 @@ class BuilderBase(object):
     def _build_canvas(self, canvas, widget, rule, rootrule):
         global Instruction
         if Instruction is None:
-            Instruction = Factory.get('Instruction')
+            Instruction = Factory.get('SkiaInstruction')
         idmap = copy(self.rulectx[rootrule]['ids'])
         for crule in rule.children:
             name = crule.name
