@@ -922,13 +922,10 @@ SKIA_LIBRARIES = [
     "jsonreader",
     "sksg",
     "skshaper",
-    "pathops",
     "skunicode_icu",
     "skunicode_core",
     "skia",
 ]
-if platform == "android":
-    SKIA_LIBRARIES.remove("pathops")
 
 
 if sys.platform == "win32":
