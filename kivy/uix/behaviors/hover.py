@@ -28,6 +28,26 @@ filters from :mod:`~kivy.uix.behaviors.motion`:
   motion events from passing through. Makes widgets "opaque" to motion events,
   preventing leak-through.
 
+Quick overview
+--------------
+
++---------------------------------------------------------------------------+
+| HOVER BEHAVIOR                                                            |
++-----------------+-----------+---------------------------------------------+
+| STATE           | TYPE      | DESCRIPTION                                 |
++=================+===========+=============================================+
+| `hovered`       | read-only | Mouse currently over widget?                |
++-----------------+-----------+---------------------------------------------+
+| EVENTS                                                                    |
++---------------------------------------------------------------------------+
+| • `on_hover_enter`  → Mouse entered widget bounds                         |
+| • `on_hover_update` → Mouse moved within bounds (or static re-dispatch)   |
+| • `on_hover_leave`  → Mouse left widget bounds                            |
+|                                                                           |
+| Note: Bind to `on_hovered` to monitor state changes.                      |
++---------------------------------------------------------------------------+
+
+
 Examples
 --------
 
