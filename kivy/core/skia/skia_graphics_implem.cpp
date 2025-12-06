@@ -377,6 +377,105 @@ public:
     }
 };
 
+
+
+
+
+
+
+class SkiaRectangle {
+private:
+    // Geometry
+    float m_x = 0.0f;
+    float m_y = 0.0f;
+    float m_w = 100.0f;
+    float m_h = 100.0f;
+
+    // Rendering
+    Texture m_texture;
+    mutable SkPaint m_paint;
+    mutable bool m_initialized = false;
+
+    void initialize() const {
+        if (m_initialized) return;
+
+        m_paint.setAntiAlias(true);
+        m_paint.setStyle(SkPaint::kFill_Style);
+        m_paint.setColor(SkColorSetARGB(255, 255, 255, 0));
+
+        m_initialized = true;
+    }
+
+    SkRect getRect() const {
+        return SkRect::MakeXYWH(m_x, m_y, m_w, m_h);
+    }
+
+    // void drawTexturedRect(SkCanvas* canvas, const SkRect& rect) const {
+    //     sk_sp<SkImage> image = m_texture.getImage();
+    //     if (!image) return;
+
+    //     canvas->save();
+
+    //     // Clip to rectangle
+    //     SkPath clip;
+    //     clip.addRect(rect, SkPathDirection::kCW);
+    //     canvas->clipPath(clip, true);
+
+    //     // Flip texture vertically
+    //     SkMatrix flipMatrix;
+    //     flipMatrix.setScale(1.0f, -1.0f, rect.centerX(), rect.centerY());
+    //     canvas->concat(flipMatrix);
+
+    //     canvas->drawImageRect(
+    //         image,
+    //         rect,
+    //         SkSamplingOptions(SkFilterMode::kLinear)
+    //     );
+
+    //     canvas->restore();
+    // }
+
+public:
+    void setTexture(const std::string& path, int width = -1, int height = -1) {
+        if (width <= 0) width = (int)m_w;
+        if (height <= 0) height = (int)m_h;
+
+        m_texture = Texture::create(path, width, height);
+    }
+
+    void clearTexture() { m_texture.clear(); }
+    const std::string& getTexture() const { return m_texture.getPath(); }
+
+    void setGeometry(float x, float y, float w, float h) {
+        m_x = x;
+        m_y = y;
+        m_w = w;
+        m_h = h;
+
+        if (m_texture.hasTexture()) {
+            m_texture.setSize((int)w, (int)h);
+        }
+    }
+
+    void renderOnCanvas(SkCanvas* canvas) const {
+        initialize();
+
+        SkRect rect = getRect();
+
+        // if (m_texture.hasTexture()) {
+        //     drawTexturedRect(canvas, rect);
+        // } else {
+        //     canvas->drawRect(rect, m_paint);
+        // }
+        canvas->drawRect(rect, m_paint);
+    }
+};
+
+
+
+
+
+
 //////////////////////////// Lottie ////////////////////////////
 
 sk_sp<skottie::Animation> animation;

@@ -915,6 +915,7 @@ SKIA_LIBRARIES = [
     "skshaper",
     "skunicode_icu",
     "skunicode_core",
+    "skparagraph",
     "skia",
 ]
 
@@ -922,6 +923,8 @@ SKIA_LIBRARIES = [
 if sys.platform == "win32":
     SKIA_LIBRARIES.extend(
         [
+            "icu",
+            "User32",
             "FontSub",
             "Advapi32",
             "OpenGL32",

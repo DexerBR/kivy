@@ -1,3 +1,8 @@
+
+import os
+
+os.environ["GRAPHICS_ENGINE"] = "skia"
+
 '''
 Canvas stress
 =============

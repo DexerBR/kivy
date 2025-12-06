@@ -755,14 +755,14 @@ class LabelBase(object):
         self.render_lines(lines, options, self._render_text, y, size)
 
         # get data from provider
-        data = self._render_end()
-        assert data
-        self.options = old_opts
+        # data = self._render_end()
+        # assert data
+        # self.options = old_opts
 
-        # If the text is 1px width, usually, the data is black.
-        # Don't blit that kind of data, otherwise, you have a little black bar.
-        if data is not None and data.width > 1:
-            self.texture.blit_data(data)
+        # # If the text is 1px width, usually, the data is black.
+        # # Don't blit that kind of data, otherwise, you have a little black bar.
+        # if data is not None and data.width > 1:
+        #     self.texture.blit_data(data)
 
     def render(self, real=False):
         '''Return a tuple (width, height) to create the image

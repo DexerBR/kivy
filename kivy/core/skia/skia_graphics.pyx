@@ -61,6 +61,15 @@ cdef extern from "skia_graphics_implem.cpp" namespace "":
         void clearTexture() nogil
 
 
+    cdef cppclass SkiaRectangle:
+        SkiaRectangle() nogil
+
+        void setGeometry(float x, float y, float w, float h) nogil
+        void renderOnCanvas(SkCanvas *canvas) nogil
+
+        void setTexture(const string& path) nogil
+        void clearTexture() nogil
+
 
 
 def initialize_skia_gl(use_angle):
@@ -90,6 +99,28 @@ cdef class Ellipse:
         """Draw on surface canvas"""
         with nogil:
             self.thisptr.renderOnCanvas(<SkCanvas *>canvas_ptr)
+
+
+
+
+cdef class Rectangle:
+    cdef SkiaRectangle* thisptr
+
+    def __cinit__(self):
+        self.thisptr = new SkiaRectangle()
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    def set_geometry(self, float x, float y, float w, float h):
+        with nogil:
+            self.thisptr.setGeometry(x, y, w, h)
+
+    cpdef render(self, uintptr_t canvas_ptr):
+        """Draw on surface canvas"""
+        with nogil:
+            self.thisptr.renderOnCanvas(<SkCanvas *>canvas_ptr)
+
 
 
 # ==========================
@@ -160,3 +191,308 @@ cdef class Surface:
         updateLottiePosAndSize(x, y, width, height)
 
     
+
+# distutils: language = c++
+# cython: language_level=3
+
+
+
+
+
+
+
+
+from libcpp.string cimport string
+from libcpp.vector cimport vector
+from libcpp cimport bool as bint
+from libc.stdint cimport uint8_t, uintptr_t
+
+# ============================================================================
+# REF AND ANCHOR STRUCTURES
+# ============================================================================
+
+cdef extern from "skia_text_implem.cpp" namespace "":
+    cdef struct RefZone:
+        string name
+        float x
+        float y
+        float w
+        float h
+    
+    cdef struct Anchor:
+        string name
+        float x
+        float y
+
+# ============================================================================
+# TEXT TEXTURE CLASS
+# ============================================================================
+
+cdef extern from "skia_text_implem.cpp" namespace "":
+    cdef cppclass TextTexture:
+        TextTexture() nogil
+        
+        # Basic setters
+        void setText(const string& text) nogil
+        void setFontSize(int size) nogil
+        void setFontFamily(const string& family) nogil
+        void setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) nogil
+        void setMarkup(bint markup) nogil
+        
+        # Text styling
+        void setBold(bint bold) nogil
+        void setItalic(bint italic) nogil
+        void setUnderline(bint underline) nogil
+        void setStrikethrough(bint strikethrough) nogil
+        
+        # Layout properties
+        void setLineHeight(float height) nogil
+        void setMaxLines(int lines) nogil
+        void setTextWidth(float width) nogil
+        void setHAlign(const string& align) nogil
+        void setShorten(bint shorten) nogil
+        
+        # Rendering
+        void renderAt(SkCanvas* canvas, float x, float y) nogil
+        
+        # Getters
+        float getWidth() nogil
+        float getHeight() nogil
+        vector[RefZone] getRefs() nogil
+        vector[Anchor] getAnchors() nogil
+        
+        # Cache management
+        @staticmethod
+        void clearCache() nogil
+        
+        @staticmethod
+        size_t getCacheSize() nogil
+
+
+# ============================================================================
+# PYTHON WRAPPER
+# ============================================================================
+
+cdef class TextTextureWrapper:
+    """
+    Wrapper for C++ TextTexture with full Kivy Label API support
+    
+    Features:
+    - Texture-based rendering (fast)
+    - Markup support ([b], [i], [color=], etc.)
+    - Ref/anchor tracking
+    - Text styling (bold, italic, underline, strikethrough)
+    - Layout control (alignment, line height, max lines)
+    """
+    cdef TextTexture* thisptr
+
+    def __cinit__(self):
+        self.thisptr = new TextTexture()
+
+    def __dealloc__(self):
+        del self.thisptr
+
+    # ========================================================================
+    # BASIC PROPERTIES
+    # ========================================================================
+
+    def set_text(self, str text):
+        """Set text content - triggers texture regeneration if changed"""
+        cdef string s = text.encode("utf-8")
+        with nogil:
+            self.thisptr.setText(s)
+
+    def set_font_size(self, int size):
+        """Set font size - triggers texture regeneration if changed"""
+        with nogil:
+            self.thisptr.setFontSize(size)
+
+    def set_font_family(self, str family):
+        """Set font family - triggers texture regeneration if changed"""
+        cdef string s = family.encode("utf-8")
+        with nogil:
+            self.thisptr.setFontFamily(s)
+
+    def set_color(self, object color):
+        """
+        Set text color - accepts:
+          - tuple/list: (r, g, b) or (r, g, b, a) in 0.0-1.0 or 0-255
+          - int/hex: 0xRRGGBB or 0xRRGGBBAA
+        """
+        cdef uint8_t r, g, b, a = 255
+
+        # All Python object operations OUTSIDE nogil
+        if isinstance(color, int):
+            # Hexadecimal: 0xFFAA00 or 0xFFAA00FF
+            hex_val = int(color)
+            a = (hex_val >> 24) & 0xFF
+            r = (hex_val >> 16) & 0xFF
+            g = (hex_val >> 8)  & 0xFF
+            b =  hex_val        & 0xFF
+            if a == 0: 
+                a = 255
+        else:
+            # Assume sequence (tuple/list)
+            seq = tuple(color)
+            if len(seq) not in (3, 4):
+                raise ValueError("Color must have 3 or 4 components")
+
+            # Convert 0.0-1.0 → 0-255 or accept 0-255
+            val_r = float(seq[0])
+            val_g = float(seq[1])
+            val_b = float(seq[2])
+            
+            r = int(val_r * 255) if val_r <= 1.0 else int(val_r)
+            g = int(val_g * 255) if val_g <= 1.0 else int(val_g)
+            b = int(val_b * 255) if val_b <= 1.0 else int(val_b)
+            
+            if len(seq) >= 4:
+                val_a = float(seq[3])
+                a = int(val_a * 255) if val_a <= 1.0 else int(val_a)
+
+        # Clamp values
+        if r > 255: r = 255
+        if g > 255: g = 255
+        if b > 255: b = 255
+        if a > 255: a = 255
+
+        # C++ call without GIL
+        with nogil:
+            self.thisptr.setColor(r, g, b, a)
+
+    def set_markup(self, bint markup):
+        """Enable/disable markup parsing - triggers texture regeneration if changed"""
+        with nogil:
+            self.thisptr.setMarkup(markup)
+
+    # ========================================================================
+    # TEXT STYLING
+    # ========================================================================
+
+    def set_bold(self, bint bold):
+        """Set bold style for plain text (not markup)"""
+        with nogil:
+            self.thisptr.setBold(bold)
+
+    def set_italic(self, bint italic):
+        """Set italic style for plain text (not markup)"""
+        with nogil:
+            self.thisptr.setItalic(italic)
+
+    def set_underline(self, bint underline):
+        """Set underline decoration"""
+        with nogil:
+            self.thisptr.setUnderline(underline)
+
+    def set_strikethrough(self, bint strikethrough):
+        """Set strikethrough decoration"""
+        with nogil:
+            self.thisptr.setStrikethrough(strikethrough)
+
+    # ========================================================================
+    # LAYOUT PROPERTIES
+    # ========================================================================
+
+    def set_line_height(self, float height):
+        """Set line height multiplier (1.0 = normal)"""
+        with nogil:
+            self.thisptr.setLineHeight(height)
+
+    def set_max_lines(self, int lines):
+        """Set maximum number of lines (0 = unlimited)"""
+        with nogil:
+            self.thisptr.setMaxLines(lines)
+
+    def set_text_width(self, float width):
+        """Set text width constraint for wrapping (-1 = no constraint)"""
+        with nogil:
+            self.thisptr.setTextWidth(width)
+
+    def set_halign(self, str align):
+        """Set horizontal alignment: 'left', 'center', 'right', 'justify'"""
+        cdef string s = align.encode("utf-8")
+        with nogil:
+            self.thisptr.setHAlign(s)
+
+    def set_shorten(self, bint shorten):
+        """Enable text shortening with ellipsis"""
+        with nogil:
+            self.thisptr.setShorten(shorten)
+
+    # ========================================================================
+    # RENDERING
+    # ========================================================================
+
+    cpdef render_at(self, uintptr_t canvas_ptr, float x, float y):
+        """Render cached texture at position - FAST operation"""
+        with nogil:
+            self.thisptr.renderAt(<SkCanvas*>canvas_ptr, x, y)
+
+    # ========================================================================
+    # GETTERS
+    # ========================================================================
+
+    cpdef tuple get_size(self):
+        """Get text dimensions (width, height)"""
+        cdef float w, h
+        with nogil:
+            w = self.thisptr.getWidth()
+            h = self.thisptr.getHeight()
+        return (w, h)
+
+    cpdef dict get_refs(self):
+        """
+        Get markup references for touch detection
+        
+        Returns:
+            dict: {ref_name: [(x, y, width, height), ...]}
+        """
+        cdef vector[RefZone] refs
+        with nogil:
+            refs = self.thisptr.getRefs()
+        
+        result = {}
+        cdef RefZone ref_zone
+        for ref_zone in refs:
+            name = ref_zone.name.decode('utf-8')
+            zone = (ref_zone.x, ref_zone.y, ref_zone.w, ref_zone.h)
+            if name not in result:
+                result[name] = []
+            result[name].append(zone)
+        
+        return result
+
+    cpdef dict get_anchors(self):
+        """
+        Get markup anchors for positioning
+        
+        Returns:
+            dict: {anchor_name: (x, y)}
+        """
+        cdef vector[Anchor] anchors
+        with nogil:
+            anchors = self.thisptr.getAnchors()
+        
+        result = {}
+        cdef Anchor anchor
+        for anchor in anchors:
+            name = anchor.name.decode('utf-8')
+            result[name] = (anchor.x, anchor.y)
+        
+        return result
+
+    # ========================================================================
+    # CACHE MANAGEMENT
+    # ========================================================================
+
+    @staticmethod
+    def clear_cache():
+        """Clear global texture cache"""
+        TextTexture.clearCache()
+
+    @staticmethod
+    def get_cache_size():
+        """Get number of cached textures"""
+        cdef size_t size
+        size = TextTexture.getCacheSize()
+        return size

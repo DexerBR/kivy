@@ -85,6 +85,7 @@ if os.environ.get("GRAPHICS_ENGINE", "default") == "skia":
     # implemented
     from kivy.core.skia.graphics.graphics import SkiaCanvas as Canvas
     from kivy.core.skia.graphics.graphics import SkiaEllipse as Ellipse
+    from kivy.core.skia.graphics.graphics import SkiaRectangle as Rectangle
     from kivy.core.skia.graphics.graphics import SkiaRenderContext as RenderContext
 
     from kivy.graphics.instructions import Callback, CanvasBase, \
@@ -95,7 +96,7 @@ if os.environ.get("GRAPHICS_ENGINE", "default") == "skia":
         PopMatrix, PushMatrix, Rotate, Scale, Translate, LoadIdentity, \
         UpdateNormalMatrix, gl_init_resources
     from kivy.graphics.vertex_instructions import Bezier, BorderImage, \
-        GraphicException, Line, Mesh, Point, Quad, Rectangle, RoundedRectangle, \
+        GraphicException, Line, Mesh, Point, Quad, RoundedRectangle, \
         Triangle, SmoothLine, SmoothRectangle, SmoothEllipse, \
         SmoothRoundedRectangle, SmoothQuad, SmoothTriangle
     from kivy.graphics.stencil_instructions import StencilPop, StencilPush, \

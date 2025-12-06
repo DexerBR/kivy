@@ -7,10 +7,20 @@ from kivy.core.skia.graphics.abstract import (
     VertexInstruction,
 )
 from kivy.factory import Factory
-from kivy.core.skia.skia_graphics import Surface, Ellipse
+from kivy.core.skia.skia_graphics import Surface, Ellipse, Rectangle
 
-active_render_context = None
-canvas_ptr = None
+
+class SkiaState:
+    active_render_context = None
+    canvas_ptr = None
+
+    @classmethod
+    def set_render_context(cls, ctx):
+        cls.active_render_context = ctx
+
+    @classmethod
+    def set_canvas_ptr(cls, ptr):
+        cls.canvas_ptr = ptr
 
 
 class SkiaRenderContext(RenderContext):
@@ -18,18 +28,15 @@ class SkiaRenderContext(RenderContext):
         super().__init__(**kwargs)
         self.skia_surface = None
 
-        global active_render_context
-        active_render_context = self
+        SkiaState.set_render_context(self)
 
     def draw(self):
         super().draw()
         self.flush_and_submit()
 
     def update_viewport(self, size):
-        global canvas_ptr
-
         skia_surface = Surface(*map(int, size))
-        canvas_ptr = skia_surface.get_canvas_ptr()
+        SkiaState.set_canvas_ptr(skia_surface.get_canvas_ptr())
         self.skia_surface = skia_surface
 
     def flush_and_submit(self):
@@ -50,14 +57,17 @@ class SkiaEllipse(VertexInstruction):
         super().__init__(**kwargs)
         self._x, self._y = kwargs.get("pos", (0, 0))
         self._w, self._h = kwargs.get("size", (100, 100))
-        self._segments = kwargs.get("segments", -1)
+        self._segments = kwargs.get("segments", 4)
         self._angle_start = kwargs.get("angle_start", 0)
         self._angle_end = kwargs.get("angle_end", 360)
         self._skia_ellipse = Ellipse()
 
+        self.build()
+
     def build(self):
-        start_angle = 90 - self.angle_start
-        end_angle = 90 - self.angle_end
+        """Sync Python properties to C++ object"""
+        start_angle = 90 - self._angle_start
+        end_angle = 90 - self._angle_end
         self._skia_ellipse.set_geometry(
             self._x,
             self._y,
@@ -65,12 +75,11 @@ class SkiaEllipse(VertexInstruction):
             self._h,
             start_angle,
             end_angle,
-            self.segments,
+            self._segments,
         )
 
     def apply(self):
-        self._skia_ellipse.render(canvas_ptr)
-        # self._skia_ellipse.render2(active_render_context.skia_surface)
+        self._skia_ellipse.render(SkiaState.canvas_ptr)
         return super().apply()
 
     @property
@@ -105,6 +114,8 @@ class SkiaEllipse(VertexInstruction):
 
     @segments.setter
     def segments(self, value):
+        if self._segments == value:
+            return
         self._segments = value
         self.flag_data_update()
 
@@ -114,6 +125,8 @@ class SkiaEllipse(VertexInstruction):
 
     @angle_start.setter
     def angle_start(self, value):
+        if self._angle_start == value:
+            return
         self._angle_start = value
         self.flag_data_update()
 
@@ -123,19 +136,77 @@ class SkiaEllipse(VertexInstruction):
 
     @angle_end.setter
     def angle_end(self, value):
+        if self._angle_end == value:
+            return
         self._angle_end = value
         self.flag_data_update()
 
     @property
     def texture(self):
-        return self._texture
+        return getattr(self, "_texture", None)
 
     @texture.setter
     def texture(self, value):
         self._texture = value
-        self._skia_ellipse.set_texture(self._texture)
+        if value:
+            self._skia_ellipse.set_texture(str(value))
+        else:
+            self._skia_ellipse.clear_texture()
         self.flag_data_update()
 
 
-Factory.register("Ellipse", Ellipse)
-Factory.register("SkiaInstruction", Instruction)
+class SkiaRectangle(VertexInstruction):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self._x, self._y = kwargs.get("pos", (0, 0))
+        self._w, self._h = kwargs.get("size", (100, 100))
+        self._skia_rect = Rectangle()
+
+        self.build()
+
+    def build(self):
+        self._skia_rect.set_geometry(self._x, self._y, self._w, self._h)
+
+    def apply(self):
+        self._skia_rect.render(SkiaState.canvas_ptr)
+        return super().apply()
+
+    @property
+    def pos(self):
+        return self._x, self._y
+
+    @pos.setter
+    def pos(self, value):
+        x, y = value
+        if (x, y) != (self._x, self._y):
+            self._x, self._y = x, y
+            self.flag_data_update()
+
+    @property
+    def size(self):
+        return self._w, self._h
+
+    @size.setter
+    def size(self, value):
+        w, h = value
+        if (w, h) != (self._w, self._h):
+            self._w, self._h = w, h
+            self.flag_data_update()
+
+    @property
+    def texture(self):
+        return getattr(self, "_texture", None)
+
+    @texture.setter
+    def texture(self, value):
+        self._texture = value
+        if value:
+            self._skia_rect.set_texture(str(value))
+        else:
+            self._skia_rect.clear_texture()
+        self.flag_data_update()
+
+
+Factory.register("Rectangle", SkiaRectangle)
+Factory.register("Ellipse", SkiaEllipse)
